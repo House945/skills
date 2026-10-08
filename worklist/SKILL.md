@@ -92,9 +92,18 @@ Two lists tracking one task across two repos are **siblings**: each carries a
 `sibling: ~/.claude/worklists/<other>.md` header, and they share ONE id space —
 `FE-07` means the same item in both files.
 
-- **Mint only your own prefix.** Whichever side raises an `OWN-*` mints it.
-- **`next-ids` is copied to both files on every invocation.** If the two disagree,
-  the higher wins; no number is ever reused on either side.
+- **Write your own file only. Never edit the sibling's** — not its rows, not its
+  header, not even to be helpful. The owner asked for this explicitly on
+  2026-08-21 after both sides had been reaching across. Two sessions editing one
+  file is how a list loses an item nobody notices is gone.
+- **Mint only your own prefix**, with one exception that has worked in practice:
+  raising something FOR the other side means minting their prefix **in your own
+  file** and letting them adopt it. `BE-10` was raised that way and the backend
+  closed it under the same id.
+- **`next-ids` is reconciled on READ, not by writing across.** Read both headers,
+  take the higher of each counter, and write the result **only into your own
+  file**. No number is ever reused on either side, so a counter that has drifted
+  low is safe to raise and never safe to lower.
 - **Mirror rows** carry the status `mirror` and are the sibling's items, kept for
   visibility. Read-only: never close a mirror on its own evidence, never reword
   it. When the owning list closes an item, move the mirror to `## Done` too, with
@@ -179,35 +188,75 @@ what you would need to close it.
 
 ## Output
 
-Lead with what is startable, because that is the question being asked:
+**Markdown tables, one per group. This shape is confirmed by the owner
+(2026-08-21) — do not fall back to an indented list.** A worklist is scanned, not
+read, and a table is what makes the third column carry its weight.
 
+Lead with what is startable, because that is the question being asked. Bold every
+id: they are the handle people speak in.
+
+```markdown
+## Startable now (0)
+
+Nothing on our side. Everything left waits on a decision or on the other team.
+
+## Blocked — needs a decision (7)
+
+| id | what has to be settled | source |
+| --- | --- | --- |
+| **OWN-02** | which endpoint scores the fund→startups direction, and its tie-break? | backlog A2 |
+| **OWN-03** | does `computeMatch.ts` stay as a fallback once the server sends `match`? | backlog A3, gated by BE-05 |
+
+## Waiting on others (2)
+
+| id | what | waiting on |
+| --- | --- | --- |
+| **FE-13** | delete the per-page Match % banner — must die with server-side sorting | BE-05 |
+
+## Parked — do not start without asking (4)
+
+| id | what | state |
+| --- | --- | --- |
+| **FE-11** | six inlined copies of the intro/message/rate strip | **unblocked** by the OWN-01 decision |
+
+## Mirrors from the sibling list (6)
+
+| id | what | their state |
+| --- | --- | --- |
+| **BE-05** | phase 8 — server-side match score, designed, not built | `open` · gates FE-13 and OWN-03 |
+
+## Closed (20)
+
+**With a commit:** FE-01 `964862fc` · FE-02 `ea8176c5` · …
+
+**Closed on other evidence:** FE-07 guide + xlsx + artifact · FE-09 measured, no
+code needed · FE-19 cited in BE-04
+
+**The other side's:** BE-03 `3d9412ea` · BE-10 `25721a3e` · …
+
+**State:** `<branch>` @ `<sha>`, tree clean, 0 ahead, 19 open items.
 ```
-Startable now (3)
-  FE-07  fund's favourite star on the applicant row
-  FE-08  applicants paging — table still passes :paginateBy="null"
-  FE-09  regenerate the tester guide
 
-Blocked (2) — needs a decision
-  OWN-01 what set of startups does the fund's tab browse?  gates FE-11
-  OWN-03 keep computeMatch as a fallback, or delete it?
+Rules the shape encodes:
 
-Waiting on someone else (3)
-  BE-02  no endpoint to un-triage back to `sent`
-  FE-13  delete the per-page banner — gated by BE-05
-  ...
-
-Parked (4) — do not start without asking
-  FE-05  the admin sort may still fire twice; never measured
-  ...
-
-Closed since the last refresh: FE-06 (`1f43e022`)
-State: <branch> @ <sha>, tree clean, 0 ahead
-```
-
-Group order is fixed: startable, blocked, waiting, parked. Within a group, keep
-file order — it is the order someone chose. If an item gates another, say so
-inline (`gates FE-11`); dependency arrows are worth more than a priority column
-nobody maintains.
+- **Every row is printed in full. Never collapse a range** — no `OWN-02 … OWN-09`,
+  no `...`, no "and 6 more". The owner asked for this explicitly after a collapsed
+  range hid what `OWN-09` actually was.
+- **The third column differs per group on purpose** — `source` for blocked (where
+  the decision is written down), `waiting on` for waiting (which id or event
+  unblocks it), `state` for parked (why it is parked, or that it is now unblocked),
+  `their state` for mirrors (the sibling's status, verbatim).
+- **An empty group gets a sentence, not an empty table.** `Startable now (0)`
+  followed by one line saying what that means is information; an empty table is
+  furniture.
+- **`Closed` is three compact inline lists, not a table** — with a commit, closed on
+  other evidence, the other side's. Items with no SHA are the ones a reader will
+  otherwise hunt for, so they get their own bucket rather than being hidden. When
+  something closed since the last refresh, name it in a line above the state line.
+- Group order is fixed: startable, blocked, waiting, parked, mirrors. Within a
+  group keep file order.
+- If an item gates another, say so in the third column (`gates FE-11`). Dependency
+  arrows are worth more than a priority column nobody maintains.
 
 **Group STRICTLY by status, and never name a group after a prefix.** Prefix and
 status are orthogonal on purpose — prefix is who acts, status is what state the
@@ -219,12 +268,9 @@ prefix already does, or after a dash on the heading when one owner genuinely
 holds the whole group.
 
 **Invariant, check it before printing:** the group counts must sum to the number
-of rows in `## Open`. Print that total on the state line — `28 open items` — so a
+of rows in `## Open`. Print that total on the state line — `19 open items` — so a
 dropped row is visible instead of plausible. If they disagree, say so and print
 the unassigned ids rather than a tidy list that is missing something.
-
-Do not print the whole Done table unless asked — one line naming what closed
-since last time is enough.
 
 ## Guardrails
 
