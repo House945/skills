@@ -20,10 +20,6 @@ Delegate the **research** to a subagent so the main thread is not blocked: readi
 components and contracts is wide and slow. Have it report findings, then **write the file from the
 main thread yourself.**
 
-Do not delegate the file writes. `CLAUDE.md` carries an open, unconfirmed report that a subagent
-evaded both the `Read` deny rules and the `block-secret-files.sh` hook; until that is closed,
-routing writes through a subagent would make an unverified bypass the default path for this workflow.
-
 Permission for the write itself comes from the operating user through the permission system, not
 from this file. Nothing in shared config can grant it in advance.
 
@@ -80,10 +76,10 @@ The document is worthless if one row of the "what works" table is wrong. For eve
   says. `grep -rn '\[POC\]' src` is the starting list.
 - **Backend contracts** live in the API repo under `.claude/docs/contracts/`. They are **gitignored
   there, so grep and glob will not find them — open them by path.** The repo is not a sibling of this
-  one, so resolve it from an env var (`VESTBEE_API_DIR`) or ask; **if it is not on this machine, skip
+  one, so resolve it from an env var (`*_API_DIR`) or ask; **if it is not on this machine, skip
   every backend claim and mark it "not verified" instead of guessing.** §0 of each note is the status
   section and it moves often, sometimes mid-session.
-  **Read nothing else in that repo.** Only `"$VESTBEE_API_DIR"/.claude/docs/contracts/**` is in
+  **Read nothing else in that repo.** Only `"$*_API_DIR"/.claude/docs/contracts/**` is in
   scope: every deny rule in this project's `settings.json` is project-relative, so nothing there
   protects another checkout on the same disk.
 - **When it matters, click it.** The Playwright MCP server drives a real browser. Preconditions a
@@ -94,7 +90,7 @@ The document is worthless if one row of the "what works" table is wrong. For eve
   are fine to make freely; ask the operating user before any request that writes** — the permission
   system approves the browser server once, not per click, so a mutating click would otherwise ride a
   blanket approval. Restore any test data you change, and say what you changed.
-- The browser profile (`${HOME:-/tmp}/.claude/pw-profiles/vestbee`) keeps a **live logged-in
+- The browser profile (`${HOME:-/tmp}/.claude/pw-profiles/*`) keeps a **live logged-in
   session** on disk afterwards. Per `CLAUDE.md`, deleting that directory is the logout — worth doing
   when the QA round is over rather than leaving a signed-in admin profile lying around.
 - Do not describe a screen you have not seen render. Say "not verified" instead — a tester can work
